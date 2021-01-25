@@ -57,8 +57,11 @@ class CheapPaymentGateway:
 
 
 class ProcessPayment:
-    def __init__(self, amount, card_holder,
-                expiration_date, credit_card_number, security_code=None):
+    def __init__(
+        self, amount, card_holder,
+        expiration_date, credit_card_number,
+        security_code=None
+    ):
         self.amount = amount
         self.card_holder = card_holder
         self.expiration_date = expiration_date
