@@ -8,7 +8,9 @@ install:
 
 # command to run tests
 script:
-   - inv test
+  - touch settings.json
+  - cat example.settings.json >> settings.json
+  - inv test
 
 after_success:
   - coveralls  # upload coverage report to coverals
