@@ -1,4 +1,5 @@
 # payment-microservice
+[![Build Status](https://travis-ci.com/abulojoshua1/payment-microservice.svg?branch=main)](https://travis-ci.com/abulojoshua1/payment-microservice)
 
 ## Project Requirements
 The applications below are required for proper setup of the project. Make sure thay are installed before proceeding with project setup
