@@ -8,7 +8,7 @@ def run_dev(context):
 
 @task(name="test")
 def test_py(context):
-    run("pytest", echo=True, pty=True)
+    run("pytest --cov=src", echo=True, pty=True)
 
 
 @task(name="isort")
