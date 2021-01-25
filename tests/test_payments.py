@@ -1,4 +1,5 @@
 from unittest import TestCase
+import mock
 
 from flask_api import status
 
@@ -15,6 +16,13 @@ class TestPayments(TestCase):
         self.headers = {
             "Content-Type": "application/json"
         }
+        self.data = {
+            "amount": 1000,
+            "card_holder": "paul pogba",
+            "expiration_date": "2026-01-26",
+            "security_code": "185",
+            "credit_card_number": "340000000000009",
+        }
 
     def test_that_get_method_not_allowed(self):
         response = self.test_client.get("/payments", headers=self.headers)
@@ -23,16 +31,41 @@ class TestPayments(TestCase):
             status.HTTP_405_METHOD_NOT_ALLOWED
         )
 
-    def test_that_post_method_is_allowed(self):
-        data = {
-            "amount": 1000,
-            "card_holder": "paul pogba",
-            "expiration_date": "2026-01-26",
-            "security_code": "185",
-            "credit_card_number": "340000000000009",
-        }
-        response = self.test_client.post("/payments", headers=self.headers, json=data)
+    @mock.patch("requests.get")
+    def test_premium_payment_gateway(self, mock_request):
+        mock_request.return_value.status_code = status.HTTP_200_OK
+        response = self.test_client.post("/payments", headers=self.headers, json=self.data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    @mock.patch("requests.get")
+    def test_expensive_payment_gateway(self, mock_request):
+        self.data["amount"] = 200
+        mock_request.return_value.status_code = status.HTTP_200_OK
+        response = self.test_client.post("/payments", headers=self.headers, json=self.data)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    @mock.patch("requests.get")
+    def test_cheap_payment_gateway(self, mock_request):
+        self.data["amount"] = 10
+        mock_request.return_value.status_code = status.HTTP_200_OK
+        response = self.test_client.post("/payments", headers=self.headers, json=self.data)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_failed_premium_payment_gateway(self):
+        self.data["amount"] = 1000
+        response = self.test_client.post("/payments", headers=self.headers, json=self.data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+    def test_failed_expensive_payment_gateway(self):
+        self.data["amount"] = 400
+        response = self.test_client.post("/payments", headers=self.headers, json=self.data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_failed_cheap_payment_gateway(self):
+        self.data["amount"] = 20
+        response = self.test_client.post("/payments", headers=self.headers, json=self.data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
 
 class TestDataValidation(TestCase):
