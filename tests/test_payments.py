@@ -1,5 +1,6 @@
 from unittest import TestCase
 
+import mock
 from flask_api import status
 
 from app import app
@@ -15,6 +16,13 @@ class TestPayments(TestCase):
         self.headers = {
             "Content-Type": "application/json"
         }
+        self.data = {
+            "amount": 1000,
+            "card_holder": "paul pogba",
+            "expiration_date": "2026-01-26",
+            "security_code": "185",
+            "credit_card_number": "340000000000009",
+        }
 
     def test_that_get_method_not_allowed(self):
         response = self.test_client.get("/payments", headers=self.headers)
@@ -23,16 +31,51 @@ class TestPayments(TestCase):
             status.HTTP_405_METHOD_NOT_ALLOWED
         )
 
-    def test_that_post_method_is_allowed(self):
-        data = {
-            "amount": 1000,
-            "card_holder": "paul pogba",
-            "expiration_date": "2026-01-26",
-            "security_code": "185",
-            "credit_card_number": "340000000000009",
-        }
-        response = self.test_client.post("/payments", headers=self.headers, json=data)
+    @mock.patch("requests.get")
+    def test_premium_payment_gateway(self, mock_request):
+        mock_request.return_value.status_code = status.HTTP_200_OK
+        response = self.test_client.post(
+            "/payments", headers=self.headers, json=self.data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    @mock.patch("requests.get")
+    def test_expensive_payment_gateway(self, mock_request):
+        self.data["amount"] = 200
+        mock_request.return_value.status_code = status.HTTP_200_OK
+        response = self.test_client.post("/payments",
+                                         headers=self.headers,
+                                         json=self.data)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    @mock.patch("requests.get")
+    def test_cheap_payment_gateway(self, mock_request):
+        self.data["amount"] = 10
+        mock_request.return_value.status_code = status.HTTP_200_OK
+        response = self.test_client.post("/payments",
+                                         headers=self.headers,
+                                         json=self.data)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_failed_premium_payment_gateway(self):
+        self.data["amount"] = 1000
+        response = self.test_client.post("/payments",
+                                         headers=self.headers,
+                                         json=self.data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_failed_expensive_payment_gateway(self):
+        self.data["amount"] = 400
+        response = self.test_client.post("/payments",
+                                         headers=self.headers,
+                                         json=self.data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_failed_cheap_payment_gateway(self):
+        self.data["amount"] = 20
+        response = self.test_client.post("/payments",
+                                         headers=self.headers,
+                                         json=self.data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
 
 class TestDataValidation(TestCase):
@@ -53,7 +96,9 @@ class TestDataValidation(TestCase):
         data = {
             "amount": -1000,
         }
-        response = self.test_client.post("/payments", headers=self.headers, json=data)
+        response = self.test_client.post("/payments",
+                                         headers=self.headers,
+                                         json=data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.json["amount"], ["min value is 0"])
 
@@ -64,7 +109,9 @@ class TestDataValidation(TestCase):
         data = {
             "amount": "$o*£ggtt",
         }
-        response = self.test_client.post("/payments", headers=self.headers, json=data)
+        response = self.test_client.post("/payments",
+                                         headers=self.headers,
+                                         json=data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.json["amount"], ["must be of float type"])
 
@@ -72,7 +119,9 @@ class TestDataValidation(TestCase):
         """
         Test that amount is required
         """
-        response = self.test_client.post("/payments", headers=self.headers, json={})
+        response = self.test_client.post("/payments",
+                                         headers=self.headers,
+                                         json={})
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.json["amount"], ["required field"])
 
@@ -83,15 +132,20 @@ class TestDataValidation(TestCase):
         data = {
             "card_holder": 12345,
         }
-        response = self.test_client.post("/payments", headers=self.headers, json=data)
+        response = self.test_client.post("/payments",
+                                         headers=self.headers,
+                                         json=data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.json["card_holder"], ["must be of string type"])
+        self.assertEqual(response.json["card_holder"],
+                         ["must be of string type"])
 
     def test_that_card_holder_is_required(self):
         """
         Test that card holder is required
         """
-        response = self.test_client.post("/payments", headers=self.headers, json={})
+        response = self.test_client.post("/payments",
+                                         headers=self.headers,
+                                         json={})
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.json["card_holder"], ["required field"])
 
@@ -102,10 +156,15 @@ class TestDataValidation(TestCase):
         data = {
             "expiration_date": "ns-hsh-726"
         }
-        response = self.test_client.post("/payments", headers=self.headers, json=data)
+        response = self.test_client.post("/payments",
+                                         headers=self.headers,
+                                         json=data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("time data 'ns-hsh-726' does not match format '%Y-%m-%d'", response.json["expiration_date"][0])
-        self.assertEqual(response.json["expiration_date"][1], "must be of datetime type")
+        self.assertIn("time data 'ns-hsh-726' "
+                      "does not match format '%Y-%m-%d'",
+                      response.json["expiration_date"][0])
+        self.assertEqual(response.json["expiration_date"][1],
+                         "must be of datetime type")
 
     def test_that_expired_cards_cannot_be_billed(self):
         """
@@ -114,17 +173,24 @@ class TestDataValidation(TestCase):
         data = {
             "expiration_date": "2015-01-26"
         }
-        response = self.test_client.post("/payments", headers=self.headers, json=data)
+        response = self.test_client.post("/payments",
+                                         headers=self.headers,
+                                         json=data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("Cannot bill an expired card.", response.json["expiration_date"][0])
-        self.assertEqual(response.json["expiration_date"][1], "must be of datetime type")
+        self.assertIn("Cannot bill an expired card.",
+                      response.json["expiration_date"][0])
+        self.assertEqual(response.json["expiration_date"][1],
+                         "must be of datetime type")
 
     def test_that_expiration_date_is_required(self):
         """
         Test that expiration_date is required
         """
-        response = self.test_client.post("/payments", headers=self.headers, json={})
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        response = self.test_client.post("/payments",
+                                         headers=self.headers,
+                                         json={})
+        self.assertEqual(response.status_code,
+                         status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.json["expiration_date"], ["required field"])
 
     def test_invalid_credit_card_number(self):
@@ -134,16 +200,22 @@ class TestDataValidation(TestCase):
         data = {
             "credit_card_number": "invalid-card-number"
         }
-        response = self.test_client.post("/payments", headers=self.headers, json=data)
+        response = self.test_client.post("/payments",
+                                         headers=self.headers,
+                                         json=data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_that_credit_card_number_is_required(self):
         """
         Test that credit card numbers are required
         """
-        response = self.test_client.post("/payments", headers=self.headers, json={})
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.json["credit_card_number"], ["required field"])
+        response = self.test_client.post("/payments",
+                                         headers=self.headers,
+                                         json={})
+        self.assertEqual(response.status_code,
+                         status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.json["credit_card_number"],
+                         ["required field"])
 
     def test_that_security_code_should_have_a_length_of_three(self):
         """
@@ -152,9 +224,12 @@ class TestDataValidation(TestCase):
         data = {
             "security_code": "12345"
         }
-        response = self.test_client.post("/payments", headers=self.headers, json=data)
+        response = self.test_client.post("/payments",
+                                         headers=self.headers,
+                                         json=data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn(" Invalid security code.", response.json["security_code"][0])
+        self.assertIn(" Invalid security code.",
+                      response.json["security_code"][0])
 
     def test_that_security_code_should_contain_only_integers(self):
         """
@@ -163,14 +238,22 @@ class TestDataValidation(TestCase):
         data = {
             "security_code": "xyz"
         }
-        response = self.test_client.post("/payments", headers=self.headers, json=data)
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("Invalid security code.", response.json["security_code"][0])
+        response = self.test_client.post("/payments",
+                                         headers=self.headers,
+                                         json=data)
+        self.assertEqual(response.status_code,
+                         status.HTTP_400_BAD_REQUEST)
+        self.assertIn("Invalid security code.",
+                      response.json["security_code"][0])
 
     def test_that_security_code_is_not_required(self):
         """
         Test that expiration_date is required
         """
-        response = self.test_client.post("/payments", headers=self.headers, json={})
+        response = self.test_client.post("/payments",
+                                         headers=self.headers,
+                                         json={})
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertTrue(response.json.get("security_code") == None)
+        self.assertFalse(
+            bool(response.json.get("security_code"))
+        )

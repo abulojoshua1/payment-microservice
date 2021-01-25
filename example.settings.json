@@ -1,3 +1,6 @@
 {
-    "DEBUG": true
+    "DEBUG": true,
+    "PREMIUM_PAYMENT_GATEWAY_URI": "https://premium-payment-gateway.com",
+    "EXPENSIVE_PAYMENT_GATEWAY_URI": "https://expensive-payment-gateway.com",
+    "CHEAP_PAYMENT_GATEWAY_URI": "https://cheap-payment-gateway.com"
 }
