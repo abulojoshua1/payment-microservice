@@ -32,6 +32,9 @@ The applications below are required for proper setup of the project. Make sure t
     $ pip install -r requirements.txt
 ```
 
+* Create a file named settings.json and copy the content of `/example.settings.json` into it at the project root directory
+* You can also use the `APPLICATION_SETTINGS` environment variable to specify the path to the a settings JSON file
+
 ## Project Utility Commands
 * Run the development server
 ```
