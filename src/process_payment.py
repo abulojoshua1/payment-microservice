@@ -8,7 +8,7 @@ from src import app
 class PremiumPaymentGateway:
     def __init__(self):
         try:
-            response = requests.get(
+            response = requests.post(
                 app.config["PREMIUM_PAYMENT_GATEWAY_URI"]
             )
             self.payment = (
@@ -25,7 +25,7 @@ class PremiumPaymentGateway:
 class ExpensivePaymentGateway:
     def __init__(self):
         try:
-            response = requests.get(
+            response = requests.post(
                 app.config["EXPENSIVE_PAYMENT_GATEWAY_URI"]
             )
             self.payment = (
@@ -42,7 +42,7 @@ class ExpensivePaymentGateway:
 class CheapPaymentGateway:
     def __init__(self):
         try:
-            response = requests.get(
+            response = requests.post(
                 app.config["CHEAP_PAYMENT_GATEWAY_URI"]
             )
             self.payment = (

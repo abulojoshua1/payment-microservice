@@ -44,6 +44,11 @@ The applications below are required for proper setup of the project. Make sure t
     $ inv run-dev
 ```
 
+* Run the production server
+```
+    $ inv run-prod
+```
+
 * [Isort](https://pypi.org/project/isort/) python imports
 ```
     $ inv isort

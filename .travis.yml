@@ -10,6 +10,7 @@ install:
 script:
   - touch settings.json
   - cat example.settings.json >> settings.json
+  - inv lint
   - inv test
 
 after_success:

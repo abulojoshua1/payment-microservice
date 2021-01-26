@@ -6,6 +6,11 @@ def run_dev(context):
     run("python app.py", echo=True, pty=True)
 
 
+@task(name="run-prod")
+def run_prod(context):
+    run("gunicorn -c gunicorn_config.py app:app", echo=True, pty=True)
+
+
 @task(name="test")
 def test_py(context):
     run("pytest --cov=src", echo=True, pty=True)
