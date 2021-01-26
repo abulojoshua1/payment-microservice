@@ -5,6 +5,7 @@ from invoke import run, task
 def run_dev(context):
     run("python app.py", echo=True, pty=True)
 
+
 @task(name="run-prod")
 def run_prod(context):
     run("gunicorn -c gunicorn_config.py app:app", echo=True, pty=True)

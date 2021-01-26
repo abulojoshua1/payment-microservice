@@ -11,9 +11,12 @@ class TestPayments(TestCase):
     Tests that application payment process route runs without crushing
     """
     def setUp(self):
-        app.config["CHEAP_PAYMENT_GATEWAY_URI"] = "http://test-cheap=payment-gateway"
-        app.config["EXPENSIVE_PAYMENT_GATEWAY_URI"] = "http://test-expensive=payment-gateway"
-        app.config["PREMIUM_PAYMENT_GATEWAY_URI"] = "http://test-premium=payment-gateway"
+        app.config["CHEAP_PAYMENT_GATEWAY_URI"] = \
+            "http://test-cheap=payment-gateway"
+        app.config["EXPENSIVE_PAYMENT_GATEWAY_URI"] = \
+            "http://test-expensive=payment-gateway"
+        app.config["PREMIUM_PAYMENT_GATEWAY_URI"] = \
+            "http://test-premium=payment-gateway"
         self.app = app
         self.test_client = self.app.test_client()
         self.headers = {
