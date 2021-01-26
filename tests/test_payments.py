@@ -11,6 +11,9 @@ class TestPayments(TestCase):
     Tests that application payment process route runs without crushing
     """
     def setUp(self):
+        app.config["CHEAP_PAYMENT_GATEWAY_URI"] = "http://test-cheap=payment-gateway"
+        app.config["EXPENSIVE_PAYMENT_GATEWAY_URI"] = "http://test-expensive=payment-gateway"
+        app.config["PREMIUM_PAYMENT_GATEWAY_URI"] = "http://test-premium=payment-gateway"
         self.app = app
         self.test_client = self.app.test_client()
         self.headers = {
@@ -31,14 +34,14 @@ class TestPayments(TestCase):
             status.HTTP_405_METHOD_NOT_ALLOWED
         )
 
-    @mock.patch("requests.get")
+    @mock.patch("requests.post")
     def test_premium_payment_gateway(self, mock_request):
         mock_request.return_value.status_code = status.HTTP_200_OK
         response = self.test_client.post(
             "/payments", headers=self.headers, json=self.data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-    @mock.patch("requests.get")
+    @mock.patch("requests.post")
     def test_expensive_payment_gateway(self, mock_request):
         self.data["amount"] = 200
         mock_request.return_value.status_code = status.HTTP_200_OK
@@ -47,7 +50,7 @@ class TestPayments(TestCase):
                                          json=self.data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-    @mock.patch("requests.get")
+    @mock.patch("requests.post")
     def test_cheap_payment_gateway(self, mock_request):
         self.data["amount"] = 10
         mock_request.return_value.status_code = status.HTTP_200_OK
